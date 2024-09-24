@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class SEModule(nn.Module):
+class SEModule(nn.Module):  # Squeeze and Excitation Module
     def __init__(self, channels, bottleneck=128):
         super(SEModule, self).__init__()
         self.se = nn.Sequential(
