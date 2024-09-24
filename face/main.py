@@ -2,6 +2,7 @@ import argparse, glob, os, torch, warnings, time
 from tools import *
 from trainer import *
 from dataLoader import *
+# stam commit
 
 
 parser = argparse.ArgumentParser(description = "Face recognition on VoxCeleb2")
