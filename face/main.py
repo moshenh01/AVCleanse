@@ -2,8 +2,8 @@ import argparse, glob, os, torch, warnings, time
 from tools import *
 from trainer import *
 from dataLoader import *
-# stam commit
 
+# face recognition on VoxCeleb2
 
 parser = argparse.ArgumentParser(description = "Face recognition on VoxCeleb2")
 
@@ -26,19 +26,19 @@ parser.add_argument('--num_eval_frames', type=int,   default=5,       help='Numb
 parser.add_argument('--save_path',  type=str,    default="", help='Path to save the clean list')
 
 ### Initial modal path
-parser.add_argument('--initial_model_v',  type=str,   default="",                              help='Path of the initial_model, visual')
+parser.add_argument('--initial_model_v',  type=str,   default="",                              help='Path of the initial_model, visual') #pretrained model
 
 ### Model & loss setting
-parser.add_argument('--margin_v',       type=float, default=0.4,    help='Loss margin for visual training')
-parser.add_argument('--scale_v',        type=float, default=64,     help='Loss scale for visual training')
-parser.add_argument('--model_v',        type=str,   default="res18",     help='resnet 18 or 50')
+parser.add_argument('--margin_v',       type=float, default=0.4,    help='Loss margin for visual training') # parameter for loss
+parser.add_argument('--scale_v',        type=float, default=64,     help='Loss scale for visual training')  # parameter for loss
+parser.add_argument('--model_v',        type=str,   default="res18",     help='resnet 18 or 50')            # model type - resnet18
 
 ###  Others
-parser.add_argument('--train',   dest='train', action='store_true', help='Do training')
-parser.add_argument('--eval',    dest='eval', action='store_true', help='Do evaluation')
+parser.add_argument('--train',   dest='train', action='store_true', help='Do training')  # flag for training mode
+parser.add_argument('--eval',    dest='eval', action='store_true', help='Do evaluation') # flag for evaluation mode
 
 ## Init folders
-args = init_system(parser.parse_args())
+args = init_system(parser.parse_args()) 
 ## Init loader
 args = init_loader(args)
 ## Init trainer

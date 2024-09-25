@@ -6,7 +6,10 @@ from visualmodel import *
 from collections import defaultdict, OrderedDict
 from torch.cuda.amp import autocast,GradScaler
 
-def init_trainer(args):
+# This file defines the main model training and evaluation logic.
+
+# Initializes the trainer class and sets up the model by loading saved parameters from previous models if available.
+def init_trainer(args): 
 	s = trainer(args)
 	args.epoch = 1
 	if args.initial_model_v != '':
@@ -21,21 +24,24 @@ def init_trainer(args):
 class trainer(nn.Module):
 	def __init__(self, args):
 		super(trainer, self).__init__()
-		self.face_encoder    = IResNet(model = args.model_v).cuda()
-		self.face_loss       = AAMsoftmax(n_class =  args.n_class, m = args.margin_v, s = args.scale_v, c = 512).cuda()
-		self.optim           = torch.optim.Adam(self.parameters(), lr = args.lr, weight_decay = 2e-5)
-		self.scheduler       = torch.optim.lr_scheduler.StepLR(self.optim, step_size = args.test_step, gamma = args.lr_decay)
+		self.face_encoder    = IResNet(model = args.model_v).cuda() 															# Using the IResNet model for face recognition
+		self.face_loss       = AAMsoftmax(n_class =  args.n_class, m = args.margin_v, s = args.scale_v, c = 512).cuda()			# Using the AAMsoftmax loss function
+		self.optim           = torch.optim.Adam(self.parameters(), lr = args.lr, weight_decay = 2e-5)							# Using the Adam optimizer				
+		self.scheduler       = torch.optim.lr_scheduler.StepLR(self.optim, step_size = args.test_step, gamma = args.lr_decay)	# Using the StepLR scheduler, which decays the learning rate by gamma every step_size epochs
 		print(" Face model para number = %.2f"%(sum(param.numel() for param in self.face_encoder.parameters()) / 1e6))
 
-	def train_network(self, args):
-		self.train()
-		scaler = GradScaler()
-		self.scheduler.step(args.epoch - 1)
+	# this function trains the model
+	# it fetches face images and labels in batches, normalizes the face images, and calculates the loss
+	# the loss is then backpropagated through the model
+	def train_network(self, args): 				
+		self.train() 							# set the model to training mode
+		scaler = GradScaler() 					# GradScaler is used to scale the loss value to prevent underflow
+		self.scheduler.step(args.epoch - 1)		
 		index, top1, loss = 0, 0, 0
-		lr = self.optim.param_groups[0]['lr']
+		lr = self.optim.param_groups[0]['lr']	
 		time_start = time.time()
 
-		for num, (face, labels) in enumerate(args.trainLoader, start = 1):
+		for num, (face, labels) in enumerate(args.trainLoader, start = 1):	
 			self.zero_grad()
 			labels      = torch.LongTensor(labels).cuda()	
 			face        = face.div_(255).sub_(0.5).div_(0.5)
@@ -57,9 +63,12 @@ class trainer(nn.Module):
 		args.score_file.write("%d epoch, LR %f, LOSS %f\n"%(args.epoch, lr, loss/num))
 		args.score_file.flush()
 		return
-		
+	
+	# this function evaluates the model
+	# For evaluation, it computes embeddings for face data and compares them using cosine similarity to get scores.
+	# The scores are then used to calculate the Equal Error Rate (EER) and the minimum Detection Cost Function (minDCF) for performance evaluation.
 	def eval_network(self, args):
-		self.eval()
+		self.eval()	# set the model to evaluation mode
 		scores_v, labels, res = [], [], []
 		embeddings = {}
 		lines = open(args.eval_trials).read().splitlines()
@@ -93,10 +102,12 @@ class trainer(nn.Module):
 		args.score_file.flush()
 		return
 
+	# this function saves the model parameters (including the face encoder and the face loss) to a file
 	def save_parameters(self, path):
 		model = OrderedDict(list(self.face_encoder.state_dict().items()) + list(self.face_loss.state_dict().items()))
 		torch.save(model, path)
 
+	# this function loads the model parameters from a file
 	def load_parameters(self, path):
 		self_state = self.state_dict()
 		loaded_state = torch.load(path)

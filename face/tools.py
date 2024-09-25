@@ -8,6 +8,8 @@ from sklearn import metrics
 from operator import itemgetter
 import torch.nn.functional as F
 
+# initializes the system, sets up the save path, and creates the model save path
+# also sets up the score save path and the model files
 def init_system(args):
     warnings.simplefilter("ignore")
     torch.multiprocessing.set_sharing_strategy('file_system')
@@ -19,6 +21,11 @@ def init_system(args):
     args.score_file = open(args.score_save_path, "a+")
     return args
 
+
+# Tunes the decision threshold to optimize for a target false alarm or false reject rate
+# returning the optimal threshold and EER.
+# Thresholds are used to determine whether a given score is a match or not.
+# The EER is the point where the false accept rate and false reject rate are equal.
 def tuneThresholdfromScore(scores, labels, target_fa, target_fr = None):
 	
 	fpr, tpr, thresholds = metrics.roc_curve(labels, scores, pos_label=1)
@@ -76,6 +83,9 @@ def ComputeErrorRates(scores, labels):
 
 # Computes the minimum of the detection cost function.  The comments refer to
 # equations in Section 3 of the NIST 2016 Speaker Recognition Evaluation Plan.
+# The MinDcf is the minimum of the detection cost function.
+# The detection cost function is a weighted sum of the false negative, means the system fails to detect the target speaker, and false positive, means the system detects the target speaker when it is not.
+# So the MinDCF is used to evaluate the performance of a speaker verification system.
 def ComputeMinDcf(fnrs, fprs, thresholds, p_target, c_miss, c_fa):
     min_c_det = float("inf")
     min_c_det_threshold = thresholds[0]
@@ -91,9 +101,11 @@ def ComputeMinDcf(fnrs, fprs, thresholds, p_target, c_miss, c_fa):
     min_dcf = min_c_det / c_def
     return min_dcf, min_c_det_threshold
 
+#  Computes the accuracy of the model
+#  The accuracy is the number of correct predictions divided by the total number of predictions
 def accuracy(output, target, topk=(1,)):
 
-	maxk = max(topk)
+	maxk = max(topk) # topk is the number of top-k predictions to check
 	batch_size = target.size(0)
 	_, pred = output.topk(maxk, 1, True, True)
 	pred = pred.t()

@@ -2,6 +2,8 @@ import glob, numpy, os, random, soundfile, torch, cv2, wave
 from scipy import signal
 import torchvision.transforms as transforms
 
+# initializes the data loader
+# loads the training and evaluation data
 def init_loader(args):
 	trainloader = train_loader(**vars(args))
 	args.trainLoader = torch.utils.data.DataLoader(trainloader, batch_size = args.batch_size, shuffle = True, num_workers = args.n_cpu, drop_last = True)
@@ -9,7 +11,10 @@ def init_loader(args):
 	args.evalLoader = torch.utils.data.DataLoader(evalLoader, batch_size = 1, shuffle = False, num_workers = args.n_cpu, drop_last = False)
 	return args
 
+# Reads the training list of images and labels,
+# applies augmentation (random flips, Gaussian blur, etc.), and loads the face images for training.
 class train_loader(object):
+    # initializes the training data loader
 	def __init__(self, train_list, train_path, **kwargs):
 		self.train_path = train_path
 		self.data_list = []
@@ -23,7 +28,8 @@ class train_loader(object):
 			file_name     = line.split()[1]
 			self.data_label.append(speaker_label)
 			self.data_list.append(file_name)
-
+	
+	# returns the face images and labels
 	def __getitem__(self, index):
 		file = self.data_list[index]
 		label = self.data_label[index]
@@ -31,6 +37,7 @@ class train_loader(object):
 		faces = torch.FloatTensor(numpy.array(faces))
 		return faces, label
 
+	# loads the face images 
 	def load_face(self, file):
 		frames = glob.glob("%s/*.jpg"%(os.path.join(self.train_path, 'frame_align', file[:-4])))
 		frame = random.choice(frames)
@@ -40,9 +47,11 @@ class train_loader(object):
 		face = numpy.transpose(face, (2, 0, 1))
 		return face
 
+	# returns the number of face images
 	def __len__(self):
 		return len(self.data_list)
 
+	# Applies augmentation to the face images
 	def face_aug(self, face):		
 		global_transform = transforms.Compose([
 			transforms.ToPILImage(),
@@ -52,7 +61,10 @@ class train_loader(object):
 		])
 		return global_transform(face)
 
+# Reads evaluation data (image frames) from the specified path,
+# resizes, normalizes, and loads them into batches for the evaluation process.
 class eval_loader(object):
+    # initializes the evaluation data loader
 	def __init__(self, eval_list, eval_path, num_eval_frames = 5, **kwargs):        
 		self.data_list, self.data_length = [], []
 		self.eval_path = eval_path
@@ -77,6 +89,7 @@ class eval_loader(object):
 				break
 			start = end
 
+	# returns the face images and filenames
 	def __getitem__(self, index):
 		data_lists, frame_length = self.minibatch[index]
 		filenames, faces = [], []
@@ -103,5 +116,6 @@ class eval_loader(object):
 		faces = faces.div_(255).sub_(0.5).div_(0.5)
 		return faces, filenames
 
+	# returns the number of face images
 	def __len__(self):
 		return len(self.minibatch)
