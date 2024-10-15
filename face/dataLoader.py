@@ -23,6 +23,8 @@ class train_loader(object):
 		dictkeys = list(set([x.split()[0] for x in lines]))		
 		dictkeys.sort()
 		dictkeys = { key : ii for ii, key in enumerate(dictkeys) }
+
+
 		for index, line in enumerate(lines):
 			speaker_label = dictkeys[line.split()[0]]
 			file_name     = line.split()[1]

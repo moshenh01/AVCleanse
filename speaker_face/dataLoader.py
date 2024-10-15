@@ -12,6 +12,8 @@ def init_loader(args):
 class train_loader(object):
 	def __init__(self, train_list, train_path, musan_path, rir_path, frame_len, **kwargs):
 		self.train_path = train_path
+
+		# Voice:
 		self.frame_len = frame_len * 160 + 240
 		self.noisetypes = ['noise','speech','music']
 		self.noisesnr = {'noise':[0,15],'speech':[13,20],'music':[5,15]}
@@ -25,10 +27,14 @@ class train_loader(object):
 		self.rir_files  = glob.glob(os.path.join(rir_path,'*/*/*.wav'))
 		self.data_list = []
 		self.data_label = []
+
+		# Shered voice and face:
 		lines = open(train_list).read().splitlines()
 		dictkeys = list(set([x.split()[0] for x in lines]))		
 		dictkeys.sort()
 		dictkeys = { key : ii for ii, key in enumerate(dictkeys) }
+
+
 		for index, line in enumerate(lines):
 			speaker_label = dictkeys[line.split()[0]]
 			file_name     = line.split()[1]
@@ -116,7 +122,10 @@ class eval_loader(object):
 	def __init__(self, eval_list, eval_path, num_eval_frames = 5, **kwargs):        
 		self.data_list, self.data_length = [], []
 		self.eval_path = eval_path
+
+		# Face:
 		self.num_eval_frames = num_eval_frames
+
 		lines = open(eval_list).read().splitlines()
 		for line in lines:
 			data = line.split()
@@ -145,6 +154,7 @@ class eval_loader(object):
 			file_name = data_lists[num]
 			filenames.append(file_name)
 
+			# Voice:
 			audio, sr = soundfile.read(os.path.join(self.eval_path, 'wav', file_name))
 			if len(audio) < int(frame_length * sr):
 				shortage    = int(frame_length * sr) - len(audio) + 1
@@ -152,6 +162,7 @@ class eval_loader(object):
 			audio = numpy.array(audio[:int(frame_length * sr)])
 			segments.append(audio)
 
+			# Face:
 			frames = glob.glob("%s/*.jpg"%(os.path.join(self.eval_path, 'frame_align', file_name[:-4])))				
 			index = numpy.linspace(0,len(frames) - 1,num=min(self.num_eval_frames, len(frames)))
 			if len(index) < self.num_eval_frames:

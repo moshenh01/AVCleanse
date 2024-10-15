@@ -53,6 +53,7 @@ class IBasicBlock(nn.Module):
         out = self.bn2(out)
         out = self.prelu(out)
         out = self.conv2(out)
+        # shape of out is (batch_size, planes, H/2, W/2)
         out = self.bn3(out)
         if self.downsample is not None:
             identity = self.downsample(x)

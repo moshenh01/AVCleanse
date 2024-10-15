@@ -52,11 +52,13 @@ class trainer(nn.Module):
 			self.zero_grad()
 			labels      = torch.LongTensor(labels).cuda()	
 			face        = face.div_(255).sub_(0.5).div_(0.5)
-			with autocast():
+			with autocast():  # mixed precision training using
 				a_embedding   = self.speaker_encoder.forward(speech.cuda(), aug = True)	
 				aloss, _ = self.speaker_loss.forward(a_embedding, labels)	
 				v_embedding   = self.face_encoder.forward(face.cuda())	
-				vloss, _ = self.face_loss.forward(v_embedding, labels)			
+				vloss, _ = self.face_loss.forward(v_embedding, labels)
+
+
 			scaler.scale(aloss + vloss).backward()
 			scaler.step(self.optim)
 			scaler.update()
@@ -64,6 +66,7 @@ class trainer(nn.Module):
 			index += len(labels)
 			loss += (aloss + vloss).detach().cpu().numpy()
 			time_used = time.time() - time_start
+
 			sys.stderr.write(" [%2d] %.2f%% (est %.1f mins) Lr: %5f, Loss: %.5f\r"%\
 			(args.epoch, 100 * (num / args.trainLoader.__len__()), time_used * args.trainLoader.__len__() / num / 60, lr, loss/(num)))
 			sys.stderr.flush()
@@ -86,10 +89,17 @@ class trainer(nn.Module):
 				for i in range(v_data.shape[0]):
 					v_outs.append(self.face_encoder.forward(v_data[i].cuda()))
 				v_embedding = torch.stack(v_outs)
+
+				# The function stores the embeddings for each sample in the embeddings dictionary.
+				# Both audio (a_embedding) and visual (v_embedding) embeddings are normalized using L2 normalization
+				# (F.normalize with p=2), ensuring that the embeddings have unit length,
+				# which is crucial for computing cosine similarity.
 				for num in range(len(filenames)):
 					filename = filenames[num][0]
+					# shape transform to
 					a = torch.unsqueeze(a_embedding[num], dim = 0)
 					v = v_embedding[:,num,:]
+					# shape of embeddings: [1, 192] for audio and [5, 512] for visual
 					embeddings[filename] = [F.normalize(a, p=2, dim=1), \
 											F.normalize(v, p=2, dim=1)]
 		
